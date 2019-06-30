@@ -12,12 +12,13 @@ Web scraper for collecting data from [PSA Cards](https://www.psacard.com/auction
 
 ## Usage
 
+To get started, save the script file `scrape.py` to your local computer.
+
 Let's say we want to scrape sales history data on the 1972 Topps Roberto Clemente card #309. The url for this card is 
 [https://www.psacard.com/auctionprices/baseball-cards/1972-topps/roberto-clemente/values/190786](https://www.psacard.com/auctionprices/baseball-cards/1972-topps/roberto-clemente/values/190786)
 
 Here are the steps to take:
 
-- Save the script file `scrape.py` to your local computer.
 - Open Command Prompt / Terminal. CD to the directory that contains the `scrape.py` file.
 - Run `python scrape.py https://www.psacard.com/auctionprices/baseball-cards/1972-topps/roberto-clemente/values/190786`
   * NOTE: you may need to use `python3` in place of `python` in the command.
