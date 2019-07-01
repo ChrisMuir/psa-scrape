@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import time
 import math
@@ -64,7 +65,7 @@ class PsaAuctionPrices:
         })
         
         # Write to Excel file
-        df.to_excel(self.get_file_name(), index = False)
+        df.to_csv(self.get_file_name(), index = False)
     
     
     def get_image_urls(self, soup):
@@ -129,7 +130,7 @@ class PsaAuctionPrices:
     
     def get_file_name(self):
         f_name = self.card_url.split("-cards/")[1].split("/values")[0].replace("/", "-")
-        return "{}.xlsx".format(f_name)
+        return "{}.csv".format(os.path.join("data", f_name))
 
 
 
@@ -138,6 +139,10 @@ if __name__ == '__main__':
     input_url = sys.argv[1]
     if not input_url or not isinstance(input_url, str):
         raise ValueError("input must be a url string")
+    
+    # If psa-scrape/data doesn't exist, create it
+    if not os.path.exists("data"):
+        os.makedirs("data")
     
     # Initialize class and execute web scraping
     pap = PsaAuctionPrices(input_url)

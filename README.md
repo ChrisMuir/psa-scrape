@@ -8,6 +8,7 @@ Web scraper for collecting data from [PSA Cards](https://www.psacard.com/auction
 - Python modules (these can be [PIP installed](https://datatofish.com/install-package-python-using-pip/))
   * [requests](https://2.python-requests.org/en/master/)
   * [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
+  * [html5lib](https://github.com/html5lib/html5lib-python)
   * [Pandas](https://pandas.pydata.org/)
 
 ## Usage
@@ -22,7 +23,7 @@ Here are the steps to take:
 - Open Command Prompt / Terminal. CD to the directory that contains the `scrape.py` file.
 - Run `python scrape.py https://www.psacard.com/auctionprices/baseball-cards/1972-topps/roberto-clemente/values/190786`
   * NOTE: you may need to use `python3` in place of `python` in the command.
-- The script will take 7-10 seconds to run, and will save a Excel file to your local directory containing all of the sales data on the 1972 Topps Clemente card.
+- The script will take 7-10 seconds to run, and will save a CSV file to `~/psa-scrape/data` containing all of the sales data on the 1972 Topps Clemente card.
 
 ## Data
 
