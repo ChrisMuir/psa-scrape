@@ -20,10 +20,13 @@ Let's say we want to scrape sales history data on the 1972 Topps Roberto Clement
 
 Here are the steps to take:
 
+- Open `urls.txt`, add the correct `https://www.psacard.com/auctionprices/` url to the list.
 - Open Command Prompt / Terminal. CD to the directory that contains the `scrape.py` file.
-- Run `python scrape.py https://www.psacard.com/auctionprices/baseball-cards/1972-topps/roberto-clemente/values/190786`
+- Run `python scrape.py`
   * NOTE: you may need to use `python3` in place of `python` in the command.
 - The script will take 7-10 seconds to run, and will save a CSV file to `~/psa-scrape/data` containing all of the sales data on the 1972 Topps Clemente card.
+
+You can add multiple PSA auction price urls to the `urls.txt` file, the code will iterate over them and save a CSV file for each url.
 
 ## Data
 

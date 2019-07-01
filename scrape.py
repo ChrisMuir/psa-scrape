@@ -15,6 +15,8 @@ class PsaAuctionPrices:
         self.card_url = card_url
     
     def scrape(self):
+        print("collecting data for {}".format(self.card_url))
+        
         # Get html data from input url
         sess = requests.Session()
         sess.mount("https://", requests.adapters.HTTPAdapter(max_retries=5))
@@ -136,17 +138,26 @@ class PsaAuctionPrices:
 
 if __name__ == '__main__':
     # Input validation
-    input_url = sys.argv[1]
-    if not input_url or not isinstance(input_url, str):
-        raise ValueError("input must be a url string")
-    
+    try:
+        input_url = [sys.argv[1]]
+        if not input_url or not isinstance(input_url, str):
+            raise ValueError("input must be a url string with base 'https://www.psacard.com/auctionprices/'")
+    except IndexError:
+        # If no input url provided, read in urls from urls.txt
+        if not os.path.exists("urls.txt"):
+            raise ValueError("no input url passed and 'urls.txt' not found")
+        with open("urls.txt") as f:
+            urls = [n for n in f.read().split("\n") if n]
+
     # If psa-scrape/data doesn't exist, create it
     if not os.path.exists("data"):
         os.makedirs("data")
     
-    # Initialize class and execute web scraping
-    pap = PsaAuctionPrices(input_url)
-    pap.scrape()
+    # Iterate over all urls
+    for url in urls:
+        # Initialize class and execute web scraping
+        pap = PsaAuctionPrices(url)
+        pap.scrape()
 
 
 
