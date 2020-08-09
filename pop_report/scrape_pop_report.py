@@ -220,12 +220,3 @@ if __name__ == '__main__':
         # Initialize class and execute web scraping
         ppr = PsaPopReport(url, set_name)
         ppr.scrape()
-
-# for k, v in x.items():
-#     print(k, v)
-
-# str(time.strftime("%Y-%m-%d-%H%M%S"))
-
-pd.set_option('display.max_columns', None)
-df = pd.read_csv("pop_report/data/2012-Panini-Prizm-basketball--2020-08-09-175443.csv")
-df.head(n=5)
