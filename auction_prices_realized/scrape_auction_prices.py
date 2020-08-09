@@ -158,8 +158,3 @@ if __name__ == '__main__':
         # Initialize class and execute web scraping
         pap = PsaAuctionPrices(url)
         pap.scrape()
-
-
-
-
-
