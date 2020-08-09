@@ -12,6 +12,11 @@ Let's say we want to scrape pop report data for the 2012 Panini Prizm basketball
 Here are the steps to take:
 
 - Open `urls.txt`, add the correct `https://www.psacard.com/pop/` url to the list.
+    - The format for the txt file should be the set name, followed by a single pipe (`|`), followed by the pop report url. 
+    Here is an example:
+    - `2012 Panini Prizm basketball | https://www.psacard.com/pop/basketball-cards/2012/panini-prizm/107837`
+    - The "set name" doesn't necessarily need to match what PSA uses, it can be whatever you want it to be. The scrape will 
+    use what you pass as the "set name" as part of the output file name.
 - Open Command Prompt / Terminal. CD to the directory that contains the `scrape_pop_report.py` file.
 - Run `python scrape_pop_report.py`
   * NOTE: you may need to use `python3` in place of `python` in the command.
