@@ -128,9 +128,11 @@ class PsaPopReport:
         try:
             return num.contents[0].strip()
         except (IndexError, AttributeError, TypeError):
-            return math.nan
+            return ""
 
     def get_name_and_card_variation(self, td_elements):
+        name = ""
+        card = ""
         for elem in td_elements:
             strong_elem = elem.find("strong")
             if strong_elem:
@@ -201,7 +203,6 @@ if __name__ == '__main__':
     urls = {}
     for line in urls_raw:
         elems = [n.strip() for n in line.split("|")]
-        # print("elems[0]: {}\nelems[1]: {}".format(elems[0], elems[1]))
         if len(elems) == 2:
             urls[elems[0]] = elems[1]
         elif len(elems) == 1:
