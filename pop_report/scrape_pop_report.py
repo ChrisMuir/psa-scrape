@@ -50,7 +50,7 @@ class PsaPopReport:
 
 
     def gen_scrape_url(self):
-        if "www.psacard.com/pop/" not in self.pop_url:
+        if POP_URL_BASE not in self.pop_url:
             raise ValueError("Input url must be a pop report url, must contain '{}', instead got: {}".format(POP_URL_BASE, self.pop_url))
         url_id = self.pop_url.split("/")[-1]
         scrape_url = "https://www.psacard.com/Pop/GetItemTable?headingID={}&categoryID=20003&isPSADNA=false".format(url_id)
@@ -216,7 +216,6 @@ if __name__ == '__main__':
 
     # Iterate over all urls
     for set_name, url in urls.items():
-        # print("set_name: {}\nurl: {}".format(set_name, url))
         # Initialize class and execute web scraping
         ppr = PsaPopReport(url, set_name)
         ppr.scrape()
