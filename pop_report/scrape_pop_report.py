@@ -7,6 +7,8 @@ import requests
 from bs4 import BeautifulSoup
 
 POP_URL_BASE = "https://www.psacard.com/pop/"
+AUTH = "auth"
+PSA_HYPTHEN = "–"
 
 class PsaPopReport:
     def __init__(self, pop_url, set_name):
@@ -57,13 +59,24 @@ class PsaPopReport:
         return scrape_url
 
     def get_grades(self, soup_element):
-        try:
-            grades = [n.contents[0].strip().lower() for n in soup_element.find_all("span")]
-        except (IndexError, AttributeError, TypeError) as e:
-            raise ValueError("Could not extract grades column headers, error: {}".format(str(e)))
-        if "auth" not in grades:
-            grades.insert(0, "authentic")
+        grades = []
+        for th in soup_element.find_all("th"):
+            obj = th.contents
+            if len(obj) < 1:
+                continue
+            obj = obj[0].strip().lower()
+            if self.is_grade(obj):
+                grades.append(obj)
         return grades
+
+    def is_grade(self, obj):
+        if obj == AUTH:
+            return True
+        try:
+            float(obj)
+            return True
+        except ValueError:
+            return False
 
     def get_one_row(self, soup_element):
         row = {}
@@ -117,14 +130,14 @@ class PsaPopReport:
         # Searching for the ["Grade", "+", "Q"] element. Return the index after that one
         for idx, elem in enumerate(td_elements):
             try:
-                if "grade" in [n.contents[0].lower() for n in elem.find_all("span")]:
+                if "grade" in [n.contents[0].lower() for n in elem.find_all("div")]:
                     return idx + 1
             except (IndexError, AttributeError, TypeError):
                 return -1
         return -1
 
     def get_card_number(self, soup_element):
-        num = soup_element.find("td", {'class': 'card-num'})
+        num = soup_element.find("td", {'class': 'text-left'})
         try:
             return num.contents[0].strip()
         except (IndexError, AttributeError, TypeError):
@@ -143,26 +156,26 @@ class PsaPopReport:
                     name = math.nan
                 # Get card name/variation
                 try:
-                    card = str(elem).split("<br/>")[1].split("<span ")[0].strip()
+                    card = str(elem).split("<br/>")[1].split("<")[0].strip()
                 except (IndexError, AttributeError, TypeError):
                     card = math.nan
         return name, card
 
     def get_pop_counts_for_single_grade(self, td_elem):
-        return [n.contents[0].strip() for n in td_elem.find_all("span")]
+        return [n.contents[0].strip() for n in td_elem.find_all("div")]
 
     def get_null_counts(self, grade):
         if grade == "authentic" or "10":
-            return ["0", "-", "-"]
+            return ["0", PSA_HYPTHEN, PSA_HYPTHEN]
         if grade == "1" or "9":
-            return ["0", "-", "0"]
+            return ["0", PSA_HYPTHEN, "0"]
         if grade == "1.5":
-            return ["-", "0", "0"]
+            return [PSA_HYPTHEN, "0", "0"]
         return ["0"] * 3
 
     def save_counts_to_row(self, counts, grade, row):
         for idx, count in enumerate(counts):
-            if count == "-":
+            if count == PSA_HYPTHEN:
                 continue
             try:
                 count = int(count)

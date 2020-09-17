@@ -4,7 +4,7 @@ Web scraper for collecting data from the [pop report](https://www.psacard.com/po
 
 ## Usage
 
-To get started, save the script file `scrape_pop_report.py` to your local computer.
+To get started, save the directory `pop_report` to your local computer.
 
 Let's say we want to scrape pop report data for the 2012 Panini Prizm basketball set. The url for this set is
 [https://www.psacard.com/pop/basketball-cards/2012/panini-prizm/107837](https://www.psacard.com/pop/basketball-cards/2012/panini-prizm/107837)
@@ -31,7 +31,7 @@ Here is an example of the data that is collected
 ```
 df.head(n=5)
 Out[1]: 
-   card_number          name    variation  authentic  1  1_w_qualifiers  1.5  \
+   card_number          name    variation       auth  1  1_w_qualifiers  1.5  \
 0            1  LeBron James          NaN          0  0               0    0   
 1            1  LeBron James  Green Prizm          0  0               0    0   
 2            1  LeBron James        Prizm          1  0               0    0   
