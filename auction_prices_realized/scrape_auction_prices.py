@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 class PsaAuctionPrices:
     def __init__(self, card_url):
         self.card_url = card_url
+        self.base_url = "https://www.psacard.com"
     
     def scrape(self):
         print("collecting data for {}".format(self.card_url))
@@ -24,33 +25,51 @@ class PsaAuctionPrices:
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html5lib")
         time.sleep(5)
-        
-        # Get image url links
-        images = self.get_image_urls(soup)
-        
-        # Get sale prices
-        prices = self.get_prices(soup)
-        
-        # Get dates of the sales
-        dates = self.get_sale_dates(soup)
-        
-        # Get PSA grades and qualifiers
-        grades, quals = self.get_grades(soup)
-        
-        # Get lot url links
-        lots = self.get_lot_urls(soup)
-        
-        # Get auction houses
-        a_houses = self.get_auction_houses(soup)
-        
-        # Get names of the sellers
-        sellers = self.get_seller_names(soup)
-        
-        # Get sale types (auction, BIN, Best Offer, etc)
-        sale_types = self.get_sale_types(soup)
-        
-        # Get PSA certification numbers
-        certs = self.get_psa_certs(soup)
+
+        images = []
+        prices = []
+        dates = []
+        grades = []
+        quals = []
+        lots = []
+        a_houses = []
+        sellers = []
+        sale_types = []
+        certs = []
+
+        trs = soup.find_all(lambda tag: tag.name == "tr" and "data-hasqualifier" in tag.attrs)
+
+        for tr in trs:
+            tds = tr.find_all("td")
+
+            # Get image url
+            images.append(self.get_image_url(tds))
+
+            # Get sales price
+            prices.append(self.get_price(tds))
+
+            # Get sale date
+            dates.append(self.get_sale_date(tds))
+
+            # Get grade and qualifer
+            grade, qual = self.get_grade_and_qualifier(tds)
+            grades.append(grade)
+            quals.append(qual)
+
+            # Get lot url
+            lots.append(self.get_lot_url(tds))
+
+            # Get auction house
+            a_houses.append(self.get_auction_house(tds))
+
+            # Get seller
+            sellers.append(self.get_seller_name(tds))
+
+            # Get sale type (auction, BIN, Best Offer, etc)
+            sale_types.append(self.get_sale_type(tds))
+
+            # Get PSA certification number
+            certs.append(self.get_psa_cert(tds))
         
         # Create a dataframe
         df = pd.DataFrame({
@@ -68,67 +87,84 @@ class PsaAuctionPrices:
         
         # Write to Excel file
         df.to_csv(self.get_file_name(), index = False)
-    
-    
-    def get_image_urls(self, soup):
-        image_data = [n for n in soup.find_all("div", {'class': 'item-image'})]
-        images = []
-        for n in image_data:
-            html = str(n)
-            if "href" not in html:
-                images.append(math.nan)
-                continue
-            images.append(html.split('href="')[1].split('"')[0])
-        return images
-    
-    def get_prices(self, soup):
-        prices = [float(n.string.strip("$").replace(",", "")) for n in soup.find_all("div", {'class': 'item item-price'})]
-        return prices
-    
-    def get_sale_dates(self, soup):
-        dates = [n.string for n in soup.find_all("div", {'class': 'item item-date'})]
-        return dates
-    
-    def get_grades(self, soup):
-        grade_data = soup.find_all("div", {'class': 'item item-grade'})
-        grades = []
-        quals = []
-        for n in grade_data:
-            html = str(n)
-            grades.append(html.split("</span>")[1].split("<")[0].strip())
-            if "<strong>" in html:
-                quals.append(html.split("<strong>")[1].split("<")[0].strip())
-            else:
-                quals.append(math.nan)
-        return grades, quals
-    
-    def get_lot_urls(self, soup):
-        lot_data = soup.find_all("div", {'class': 'item item-lot'})
-        base_url = "https://www.psacard.com"
-        lots = []
-        for n in lot_data:
-            html = str(n)
-            if "href" not in html:
-                lots.append(math.nan)
-                continue
-            lots.append(base_url + html.split('href="')[1].split('"')[0])
-        return lots
-    
-    def get_auction_houses(self, soup):
-        a_houses = [n.string for n in soup.find_all("div", {'class': 'item item-auctionhouse'})]
-        return a_houses
-    
-    def get_seller_names(self, soup):
-        sellers = [n.string for n in soup.find_all("div", {'class': 'item item-auctionname'})]
-        return sellers
-    
-    def get_sale_types(self, soup):
-        sale_types = [n.string for n in soup.find_all("div", {'class': 'item item-auctiontype'})]
-        return sale_types
-    
-    def get_psa_certs(self, soup):
-        certs = [str(n).split("</span>")[1].split("<")[0] for n in soup.find_all("div", {'class': 'item item-cert'})]
-        return certs
+
+    def get_image_url(self, td_elements):
+        for elem in td_elements:
+            a_tag = elem.find("a", href=True)
+            if a_tag and "auctionprices" not in a_tag["href"]:
+                return a_tag["href"]
+        return math.nan
+
+    def get_price(self, td_elements):
+        for td in td_elements:
+            if td.has_attr("data-saleprice"):
+                try:
+                    return float(td.string.strip("$").replace(",", ""))
+                except ValueError:
+                    print("Error: found malformed sales price value: {}\n"\
+                          "For page {}".format(td.string, self.card_url))
+                    return math.nan
+        return math.nan
+
+    def get_sale_date(self, td_elements):
+        for td in td_elements:
+            if td.has_attr("data-saledate"):
+                return td.string
+        return math.nan
+
+    def get_grade_and_qualifier(self, td_elements):
+        grade = math.nan
+        qual = math.nan
+        grade_elem = None
+        for td in td_elements:
+            if td.has_attr("data-order") and td.has_attr("data-search"):
+                grade_elem = td
+                break
+        if grade_elem:
+            grade = grade_elem.get_text().strip().split(" ")[0]
+            if grade_elem.find("strong"):
+                qual = grade_elem.find("strong").string
+        if not grade and "psadna" in str(grade_elem).lower():
+            grade = "psadna"
+        if "authentic altered" in str(grade_elem).lower():
+            grade = "authentic altered"
+        return grade, qual
+
+    def get_lot_url(self, td_elements):
+        for idx, td in enumerate(td_elements):
+            if td.has_attr("class") and td.has_attr("data-order") and td.find("a", href=True):
+                return self.base_url + td.find("a")["href"]
+        return math.nan
+
+    def get_auction_house(self, td_elements):
+        idx = self.lookup_by_index_offset(td_elements, 1)
+        if idx == -1:
+            return math.nan
+        return td_elements[idx].string
+
+    def get_seller_name(self, td_elements):
+        idx = self.lookup_by_index_offset(td_elements, 2)
+        if idx == -1:
+            return math.nan
+        return td_elements[idx].string
+
+    def get_sale_type(self, td_elements):
+        idx = self.lookup_by_index_offset(td_elements, 3)
+        if idx == -1:
+            return math.nan
+        return td_elements[idx].string
+
+    def get_psa_cert(self, td_elements):
+        idx = self.lookup_by_index_offset(td_elements, 4)
+        if idx == -1:
+            return math.nan
+        return td_elements[idx].string
+
+    def lookup_by_index_offset(self, td_elements, offset):
+        for idx, td in enumerate(td_elements):
+            if td.has_attr("class") and td.has_attr("data-order") and td.find("a", href=True):
+                return idx + offset
+        return -1
     
     def get_file_name(self):
         f_name = self.card_url.split("-cards/")[1].split("/values")[0].replace("/", "-")
