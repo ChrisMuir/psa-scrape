@@ -3,7 +3,7 @@ import sys
 import time
 import math
 import pandas as pd
-import requests
+import cloudscraper
 from bs4 import BeautifulSoup
 
 POP_URL_BASE = "https://www.psacard.com/pop/"
@@ -26,8 +26,7 @@ class PsaPopReport:
             return
 
         # Get html data from input url
-        sess = requests.Session()
-        sess.mount("https://", requests.adapters.HTTPAdapter(max_retries=5))
+        sess = cloudscraper.create_scraper()
         r = sess.get(scrape_url)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html5lib")

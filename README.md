@@ -11,6 +11,7 @@ writes its data to local file as CSV.
 - [Python 3](https://www.python.org/downloads/)
 - Python modules (these can be [PIP installed](https://datatofish.com/install-package-python-using-pip/))
   * [requests](https://2.python-requests.org/en/master/)
+  * [cloudscraper](https://github.com/VeNoMouS/cloudscraper)
   * [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
   * [html5lib](https://github.com/html5lib/html5lib-python)
   * [Pandas](https://pandas.pydata.org/)

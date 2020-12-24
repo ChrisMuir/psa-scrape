@@ -2,6 +2,13 @@
 
 Web scraper for collecting data from the [pop report](https://www.psacard.com/pop/) database from the PSA website.
 
+## Requirements
+
+This scraper uses the [cloudscraper](https://github.com/venomous/cloudscraper) python module to pull 
+the pop report HTML. This module requires that you have a JavaScript interpreter installed.
+See [here](https://github.com/venomous/cloudscraper#javascript-interpreters-and-engines) for a list of compatible JS engines.
+You must install one of those interpreters.
+
 ## Usage
 
 To get started, save the directory `pop_report` to your local computer.
