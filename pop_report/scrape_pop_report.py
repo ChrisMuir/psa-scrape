@@ -3,34 +3,58 @@ import sys
 import time
 import math
 import pandas as pd
-import cloudscraper
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, StaleElementReferenceException, ElementClickInterceptedException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 
 POP_URL_BASE = "https://www.psacard.com/pop/"
 AUTH = "auth"
 PSA_HYPTHEN = "–"
+CHROMEDRIVER_PATH = "/path/to/local/chromedriver"
 
 class PsaPopReport:
-    def __init__(self, pop_url, set_name):
+    def __init__(self, pop_url, set_name, driver):
         self.pop_url = pop_url
         self.set_name = set_name
+        self.driver = driver
 
     def scrape(self):
         print("collecting data for {}".format(self.set_name))
+        page_num = 1
 
-        # Generate scrapable url
-        try:
-            scrape_url = self.gen_scrape_url()
-        except ValueError as e:
-            print(str(e))
+        # Navigate to webpage, pause until page finishes loading
+        driver.get(self.pop_url)
+        page_loaded = self.pause_for_page_loading(self.driver)
+        if not page_loaded:
+            print("Error, page won't load for set {}".format(self.set_name))
             return
 
-        # Get html data from input url
-        sess = cloudscraper.create_scraper()
-        r = sess.get(scrape_url)
-        r.raise_for_status()
-        soup = BeautifulSoup(r.text, "html5lib")
-        time.sleep(5)
+        # Get data from the current page
+        df = self.get_data_from_single_page(driver)
+
+        # Page through all results, collecting data from each page
+        next_page_button = self.is_next_page(driver)
+        while next_page_button:
+            self.click_to_next_page(driver, next_page_button)
+            page_loaded = self.pause_for_page_loading(self.driver)
+            if not page_loaded:
+                print("Error, unable to click to page {}, returning incomplete data for set {}".format(page_num + 1, self.set_name))
+                break
+            page_num += 1
+            curr_df = self.get_data_from_single_page(driver)
+            df = df.append(pd.DataFrame(data = curr_df), ignore_index=True)
+            next_page_button = self.is_next_page(driver)
+
+        # Write to Excel file
+        df.to_csv(self.get_file_name(), index=False)
+
+    def get_data_from_single_page(self, driver):
+        res = driver.page_source
+        soup = BeautifulSoup(res, "html5lib")
+        time.sleep(3)
         all_data = [n for n in soup.find_all("tr")]
 
         # Get grade column headers
@@ -45,17 +69,35 @@ class PsaPopReport:
 
         # Create a dataframe and specify columns to write to file
         df = pd.DataFrame(all_rows)
+        return df
 
-        # Write to Excel file
-        df.to_csv(self.get_file_name(), columns = all_rows[0].keys(), index=False)
+    # Halt webdriver steps until the "page loading" css spinner is gone.
+    def pause_for_page_loading(self, driver):
+        tries = 10
+        while tries > 0:
+            try:
+                driver.find_element_by_id("spinner-wrap").is_displayed()
+            except (NoSuchElementException, TimeoutException, StaleElementReferenceException):
+                return True
+            time.sleep(1)
+            tries -= 1
+        return False
 
+    # Check to see if there is a "next page" button.
+    def is_next_page(self, driver):
+        try:
+            button = driver.wait.until(EC.element_to_be_clickable(
+                (By.ID, "tablePSA_next")))
+            return button
+        except (NoSuchElementException, TimeoutException):
+            pass
+        return None
 
-    def gen_scrape_url(self):
-        if POP_URL_BASE not in self.pop_url:
-            raise ValueError("Input url must be a pop report url, must contain '{}', instead got: {}".format(POP_URL_BASE, self.pop_url))
-        url_id = self.pop_url.split("/")[-1]
-        scrape_url = "https://www.psacard.com/Pop/GetItemTable?headingID={}&categoryID=20003&isPSADNA=false".format(url_id)
-        return scrape_url
+    def click_to_next_page(self, driver, next_page_button):
+        try:
+            next_page_button.click()
+        except ElementClickInterceptedException:
+            driver.execute_script("arguments[0].click();", next_page_button)
 
     def get_grades(self, soup_element):
         grades = []
@@ -161,7 +203,7 @@ class PsaPopReport:
         return name, card
 
     def get_pop_counts_for_single_grade(self, td_elem):
-        return [n.contents[0].strip() for n in td_elem.find_all("div")]
+        return [n.contents[0].strip().replace(",", "") for n in td_elem.find_all("div")]
 
     def get_null_counts(self, grade):
         if grade == "authentic" or "10":
@@ -199,6 +241,13 @@ class PsaPopReport:
         return "{}.csv".format(os.path.join("data", f_name))
 
 
+def init_driver(file_path):
+    driver = webdriver.Chrome(executable_path=file_path)
+    driver.wait = WebDriverWait(driver, 3)
+    driver.maximize_window()
+    return(driver)
+
+
 if __name__ == '__main__':
     # Input validation
     try:
@@ -227,8 +276,18 @@ if __name__ == '__main__':
     if not os.path.exists("data"):
         os.makedirs("data")
 
-    # Iterate over all urls
-    for set_name, url in urls.items():
-        # Initialize class and execute web scraping
-        ppr = PsaPopReport(url, set_name)
-        ppr.scrape()
+    try:
+        # init webdriver
+        driver = init_driver(CHROMEDRIVER_PATH)
+
+        # Iterate over all urls
+        for set_name, url in urls.items():
+            # Initialize class and execute web scraping
+            ppr = PsaPopReport(url, set_name, driver)
+            ppr.scrape()
+
+    except Exception as e:
+        raise
+
+    finally:
+        driver.close()

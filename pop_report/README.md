@@ -1,13 +1,16 @@
 # PSA Cards Pop Report Web Scraper
 
 Web scraper for collecting data from the [pop report](https://www.psacard.com/pop/) database from the PSA website.
+Built using Python and Selenium.
 
 ## Requirements
 
-This scraper uses the [cloudscraper](https://github.com/venomous/cloudscraper) python module to pull 
-the pop report HTML. This module requires that you have a JavaScript interpreter installed.
-See [here](https://github.com/venomous/cloudscraper#javascript-interpreters-and-engines) for a list of compatible JS engines.
-You must install one of those interpreters.
+This scraper uses Selenium and ChromeDriver to pull pop report HTML. To use it, you must download ChromeDriver. 
+Notes on ChromeDriver:
+- Download page [here](https://chromedriver.chromium.org/downloads)
+- Quick tutorial on web scraping in Python with Selenium and ChromeDriver [here](https://towardsdatascience.com/how-to-use-selenium-to-web-scrape-with-example-80f9b23a843a)
+- You must edit the line `CHROMEDRIVER_PATH = "/path/to/local/chromedriver"` at the top of the file 
+`scrape_pop_report.py`, to point to your locally downloaded ChromeDriver executable file.
 
 ## Usage
 
@@ -24,11 +27,15 @@ Here are the steps to take:
     - `2012 Panini Prizm basketball | https://www.psacard.com/pop/basketball-cards/2012/panini-prizm/107837`
     - The "set name" doesn't necessarily need to match what PSA uses, it can be whatever you want it to be. The scraper will 
     use what you pass as the "set name" as part of the output file name.
+- Open `scrape_pop_report.py`, edit the line `CHROMEDRIVER_PATH = "/path/to/local/chromedriver"` at 
+  the top of the file to point to your locally downloaded ChromeDriver executable file.
 - Open Command Prompt / Terminal. CD to the directory that contains the `scrape_pop_report.py` file.
 - Run `python scrape_pop_report.py`
   * NOTE: you may need to use `python3` in place of `python` in the command.
-- The script will take 6-7 seconds per set to run, and will save a CSV file to `~/psa-scrape/pop_report/data` containing 
-all of the pop report data for the 2012 Prizm set.
+- You should see a new Google Chrome window open, and start automatically navigating to the PSA pages that contain the 
+  pop report data.
+- The script will take 5-15 seconds per set to run, and will save a CSV file to `~/psa-scrape/pop_report/data` containing 
+  all of the pop report data for the 2012 Prizm set.
 
 You can add multiple PSA pop report urls to the `urls.txt` file, the code will iterate over them and save a CSV file for each url.
 
