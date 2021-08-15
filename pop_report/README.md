@@ -3,7 +3,14 @@
 Web scraper for collecting data from the [pop report](https://www.psacard.com/pop/) database from the PSA website.
 Built using Python and Selenium.
 
-## Requirements
+## Software Requirements
+
+- [Python 3](https://www.python.org/downloads/)
+- Python modules (these can be [PIP installed](https://datatofish.com/install-package-python-using-pip/))
+  * [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
+  * [html5lib](https://github.com/html5lib/html5lib-python)
+  * [Pandas](https://pandas.pydata.org/)
+  * [Selenium](https://selenium-python.readthedocs.io/installation.html)
 
 This scraper uses Selenium and ChromeDriver to pull pop report HTML. To use it, you must download ChromeDriver. 
 Notes on ChromeDriver:
