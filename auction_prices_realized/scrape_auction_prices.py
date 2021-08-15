@@ -69,7 +69,6 @@ class PsaAuctionPrices:
         certs = []
 
         # Iterate over each sale, pull data elements from each sale
-        print("Total sales: {}".format(len(sales)))
         for sale in sales:
             # Get image url
             images.append(self.get_image_url(sale))
