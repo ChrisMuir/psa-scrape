@@ -7,26 +7,57 @@ import time
 import math
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
 
+PAGE_MAX = 250
+SCRAPE_URL = "https://www.psacard.com/auctionprices/GetItemLots"
+EXAMPLE_URL = "https://www.psacard.com/auctionprices/baseball-cards/1967-topps/mets-rookies/values/187370"
 
 class PsaAuctionPrices:
     def __init__(self, card_url):
         self.card_url = card_url
-        self.base_url = "https://www.psacard.com"
     
     def scrape(self):
         print("collecting data for {}".format(self.card_url))
+
+        # Pull the card ID off the input url
+        try:
+            card_id = int(self.card_url.split("/")[-1])
+        except:
+            print("Input URL should end in a numeric value, it should look like this: {}".format(EXAMPLE_URL))
+            return None
         
-        # Get html data from input url
+        # Get json data for input card
         sess = requests.Session()
         sess.mount("https://", requests.adapters.HTTPAdapter(max_retries=5))
-        r = sess.get(self.card_url)
-        r.raise_for_status()
-        soup = BeautifulSoup(r.text, "html5lib")
-        time.sleep(5)
+        form_data = {
+            "specID": str(card_id),
+            "draw": 1,
+            "start": 0,
+            "length": PAGE_MAX
+        }
+
+        json_data = self.post_to_url(sess, form_data)
+        sales = json_data["data"]
+
+        # If there's more than PAGE_MAX sales results, keep calling the SCRAPE_URL until we have all of the sales
+        # records
+        total_sales = json_data["recordsTotal"]
+        if total_sales > PAGE_MAX:
+            additional_pages = math.ceil((total_sales - PAGE_MAX) / PAGE_MAX)
+            for i in range(additional_pages):
+                curr_page = i + 1
+                form_data = {
+                    "specID": str(card_id),
+                    "draw": curr_page + 2,
+                    "start": PAGE_MAX * curr_page,
+                    "length": PAGE_MAX
+                }
+
+                json_data = self.post_to_url(sess, form_data)
+                sales += json_data["data"]
 
         images = []
+        a_urls = []
         prices = []
         dates = []
         grades = []
@@ -37,39 +68,41 @@ class PsaAuctionPrices:
         sale_types = []
         certs = []
 
-        trs = soup.find_all(lambda tag: tag.name == "tr" and "data-hasqualifier" in tag.attrs)
-
-        for tr in trs:
-            tds = tr.find_all("td")
-
+        # Iterate over each sale, pull data elements from each sale
+        print("Total sales: {}".format(len(sales)))
+        for sale in sales:
             # Get image url
-            images.append(self.get_image_url(tds))
+            images.append(self.get_image_url(sale))
+
+            # Get auction url
+            a_urls.append(self.get_auction_url(sale))
 
             # Get sales price
-            prices.append(self.get_price(tds))
+            prices.append(self.get_price(sale))
 
             # Get sale date
-            dates.append(self.get_sale_date(tds))
+            dates.append(self.get_sale_date(sale))
 
-            # Get grade and qualifer
-            grade, qual = self.get_grade_and_qualifier(tds)
-            grades.append(grade)
-            quals.append(qual)
+            # Get grade
+            grades.append(self.get_grade(sale))
 
-            # Get lot url
-            lots.append(self.get_lot_url(tds))
+            # Get qualifer
+            quals.append(self.get_qualifier(sale))
+
+            # Get lot number
+            lots.append(self.get_lot_number(sale))
 
             # Get auction house
-            a_houses.append(self.get_auction_house(tds))
+            a_houses.append(self.get_auction_house(sale))
 
             # Get seller
-            sellers.append(self.get_seller_name(tds))
+            sellers.append(self.get_seller_name(sale))
 
             # Get sale type (auction, BIN, Best Offer, etc)
-            sale_types.append(self.get_sale_type(tds))
+            sale_types.append(self.get_sale_type(sale))
 
             # Get PSA certification number
-            certs.append(self.get_psa_cert(tds))
+            certs.append(self.get_psa_cert(sale))
         
         # Create a dataframe
         df = pd.DataFrame({
@@ -80,91 +113,88 @@ class PsaAuctionPrices:
             "auction_house": a_houses, 
             "seller": sellers, 
             "sale_type": sale_types, 
-            "psa_certification": certs, 
-            "img_url": images, 
-            "lot_url": lots
+            "psa_certification": certs,
+            "lot_number": lots,
+            "auction_url": a_urls,
+            "img_url": images
         })
         
-        # Write to Excel file
+        # Write to csv
         df.to_csv(self.get_file_name(), index = False)
 
-    def get_image_url(self, td_elements):
-        for elem in td_elements:
-            a_tag = elem.find("a", href=True)
-            if a_tag and "auctionprices" not in a_tag["href"]:
-                return a_tag["href"]
+    def post_to_url(self, session, form_data):
+        r = session.post(SCRAPE_URL, data=form_data)
+        r.raise_for_status()
+        json_data = r.json()
+        time.sleep(3)
+        return json_data
+
+    def get_image_url(self, sale):
+        if "ImageURL" in sale:
+            return sale["ImageURL"]
         return math.nan
 
-    def get_price(self, td_elements):
-        for td in td_elements:
-            if td.has_attr("data-saleprice"):
-                try:
-                    return float(td.string.strip("$").replace(",", ""))
-                except ValueError:
-                    print("Error: found malformed sales price value: {}\n"\
-                          "For page {}".format(td.string, self.card_url))
-                    return math.nan
+    def get_auction_url(self, sale):
+        if "URL" in sale:
+            return sale["URL"]
         return math.nan
 
-    def get_sale_date(self, td_elements):
-        for td in td_elements:
-            if td.has_attr("data-saledate"):
-                return td.string
+    def get_price(self, sale):
+        try:
+            sale_price = sale["SalePrice"]
+        except KeyError:
+            return math.nan
+        try:
+            return float(sale_price.strip("$").replace(",", ""))
+        except ValueError:
+            print("Error: found malformed sales price value: {}\n" \
+                  "For page {}".format(sale_price, self.card_url))
+            return math.nan
+
+    def get_sale_date(self, sale):
+        if "EndDate" in sale:
+            return sale["EndDate"]
         return math.nan
 
-    def get_grade_and_qualifier(self, td_elements):
-        grade = math.nan
-        qual = math.nan
-        grade_elem = None
-        for td in td_elements:
-            if td.has_attr("data-order") and td.has_attr("data-search"):
-                grade_elem = td
-                break
-        if grade_elem:
-            grade = grade_elem.get_text().strip().split(" ")[0]
-            if grade_elem.find("strong"):
-                qual = grade_elem.find("strong").string
-        if not grade and "psadna" in str(grade_elem).lower():
-            grade = "psadna"
-        if "authentic altered" in str(grade_elem).lower():
-            grade = "authentic altered"
-        return grade, qual
-
-    def get_lot_url(self, td_elements):
-        for idx, td in enumerate(td_elements):
-            if td.has_attr("class") and td.has_attr("data-order") and td.find("a", href=True):
-                return self.base_url + td.find("a")["href"]
+    def get_grade(self, sale):
+        if "GradeString" in sale:
+            return sale["GradeString"]
         return math.nan
 
-    def get_auction_house(self, td_elements):
-        idx = self.lookup_by_index_offset(td_elements, 1)
-        if idx == -1:
+    def get_qualifier(self, sale):
+        if "HasQualifier" in sale:
+            if bool(sale["HasQualifier"]):
+                return sale["Qualifier"]
             return math.nan
-        return td_elements[idx].string
-
-    def get_seller_name(self, td_elements):
-        idx = self.lookup_by_index_offset(td_elements, 2)
-        if idx == -1:
+        else:
+            if sale["Qualifier"]:
+                return sale["Qualifier"]
             return math.nan
-        return td_elements[idx].string
 
-    def get_sale_type(self, td_elements):
-        idx = self.lookup_by_index_offset(td_elements, 3)
-        if idx == -1:
-            return math.nan
-        return td_elements[idx].string
+    def get_lot_number(self, sale):
+        if "LotNo" in sale:
+            return sale["LotNo"]
+        return math.nan
 
-    def get_psa_cert(self, td_elements):
-        idx = self.lookup_by_index_offset(td_elements, 4)
-        if idx == -1:
-            return math.nan
-        return td_elements[idx].string
+    def get_auction_house(self, sale):
+        if "Name" in sale:
+            return sale["Name"]
+        return math.nan
 
-    def lookup_by_index_offset(self, td_elements, offset):
-        for idx, td in enumerate(td_elements):
-            if td.has_attr("class") and td.has_attr("data-order") and td.find("a", href=True):
-                return idx + offset
-        return -1
+    def get_seller_name(self, sale):
+        if "AuctionName" in sale:
+            return sale["AuctionName"]
+        return math.nan
+
+    def get_sale_type(self, sale):
+        if "AuctionType" in sale:
+            return sale["AuctionType"]
+        return math.nan
+
+    def get_psa_cert(self, sale):
+        if "CertNo" in sale:
+            return sale["CertNo"]
+        return math.nan
     
     def get_file_name(self):
         f_name = self.card_url.split("-cards/")[1].split("/values")[0].replace("/", "-")
