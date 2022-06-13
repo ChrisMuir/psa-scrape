@@ -76,7 +76,7 @@ class PsaPopReport:
         tries = 10
         while tries > 0:
             try:
-                driver.find_element_by_id("spinner-wrap").is_displayed()
+                driver.find_element(By.ID, "spinner-wrap").is_displayed()
             except (NoSuchElementException, TimeoutException, StaleElementReferenceException):
                 return True
             time.sleep(1)
