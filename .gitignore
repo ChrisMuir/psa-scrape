@@ -4,4 +4,4 @@ __pycache__/
 */data
 *.R
 scratch.py
-*_html.txt
+*html*.txt
